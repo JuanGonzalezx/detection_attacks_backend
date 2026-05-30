@@ -16,6 +16,14 @@ GREETING = (
 ASK_BACK = "Frontal recibida ✅.\n\nAhora envia una *foto de la PARTE TRASERA*."
 ASK_FRONT_AGAIN = "Aun no he recibido la frontal. Envia la *foto de la PARTE FRONTAL* de tu cedula."
 ASK_BACK_AGAIN = "Ya recibi la frontal. Ahora envia la *foto de la PARTE TRASERA*."
+FRONT_FAILED = (
+    "No pude analizar la frontal (el servicio de analisis no respondio bien). "
+    "Por favor *reenvia la foto de la PARTE FRONTAL*."
+)
+BACK_FAILED = (
+    "No pude analizar la trasera (el servicio de analisis no respondio bien). "
+    "Por favor *reenvia la foto de la PARTE TRASERA*."
+)
 ALREADY_DONE = (
     "Ya procese ambas caras de tu documento. Si quieres analizar otro, escribe *reiniciar*."
 )
@@ -96,12 +104,19 @@ async def handle_image(phone: str, media_id: str) -> None:
 
     if state == sessions.AWAITING_FRONT:
         result = await _process_image(phone, media_id, "frontal")
+        if "error" in result:
+            # No avanzamos: pedimos reenviar la misma cara.
+            await send_text_message(phone, FRONT_FAILED)
+            return
         await sessions.save_front(phone, result)
         summary = _summarize("frontal", result)
         await send_text_message(phone, f"{summary}\n\n{ASK_BACK}")
 
     elif state == sessions.AWAITING_BACK:
         result = await _process_image(phone, media_id, "trasera")
+        if "error" in result:
+            await send_text_message(phone, BACK_FAILED)
+            return
         await sessions.save_back(phone, result)
         summary = _summarize("trasera", result)
         await send_text_message(
