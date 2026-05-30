@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: detection-attacks-whatsapp
+    runtime: python
+    plan: free
+    buildCommand: pip install uv && uv sync
+    startCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v25.0
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: FRAUD_API_URL
+        value: https://6v39g0i9ga.execute-api.us-east-1.amazonaws.com/upload-image
+      - key: DATABASE_URL
+        sync: false
