@@ -1,10 +1,10 @@
 \section{Arquitectura del Sistema}
 \label{sec:architecture}
 
-El sistema NeoAstrum adopta una arquitectura modular distribuida dividida en tres capas principales: la interfaz conversacional, el orquestador de lógica de negocio y los servicios cognitivos de análisis.
+El sistema NeoAstrum adopta una arquitectura de microservicios distribuida e híbrida, combinando la flexibilidad de la orquestación en la nube (Render) con el procesamiento especializado en infraestructura de Amazon Web Services (AWS) y servidores virtuales (EC2).
 
 \subsection{Capa Orquestadora: FastAPI y LangGraph}
-El backend principal está construido utilizando el framework de alto rendimiento **FastAPI**. La gestión de la conversación es controlada por **LangGraph**, que modela el flujo de validación como un grafo de estados dirigido. El estado de la conversación se modela en la estructura de datos `AgentState`:
+El backend principal está desarrollado en **FastAPI** y se despliega en Render. Se encarga de recibir los webhooks de Meta, procesar los eventos e interactuar de forma conversacional con el usuario por WhatsApp. La orquestación conversacional es controlada por **LangGraph**, definiendo un grafo de estados determinista guiado por la estructura de datos `AgentState`:
 
 \begin{lstlisting}[language=Python, caption=Definición de AgentState en el Orquestador]
 class AgentState(TypedDict):
@@ -29,21 +29,32 @@ class AgentState(TypedDict):
 El flujo conversacional sigue una máquina de estados determinista guiada por la entrada del usuario:
 \begin{enumerate}
     \item **GreetingNode:** Saluda al usuario y solicita la foto frontal.
-    \item **ProcessFrontNode:** Descarga la imagen frontal de WhatsApp, invoca la Lambda de AWS y transiciona a `AWAITING_BACK` si la imagen es válida.
-    \item **ProcessBackNode:** Descarga la imagen trasera, invoca la Lambda, realiza la consolidación del veredicto final y transiciona a `DONE`.
+    \item **ProcessFrontNode:** Descarga la imagen frontal de WhatsApp, invoca la API Gateway de AWS y transiciona a `AWAITING_BACK` si el documento es válido.
+    \item **ProcessBackNode:** Descarga la imagen trasera, invoca la API Gateway, realiza la consolidación del veredicto final y transiciona a `DONE`.
     \item **ResetNode:** Limpia los datos de sesión y reinicia el flujo cuando el usuario escribe *reiniciar*.
     \item **UnsupportedTextNode:** Responde con asistencia conversacional cuando se reciben mensajes fuera de la secuencia del flujo.
 \end{enumerate}
 
-\subsection{Integración con AWS Lambda y Rekognition}
-Para la evaluación de las imágenes, el orquestador se conecta de forma segura a una API expuesta en AWS que ejecuta una función Lambda. El flujo técnico de procesamiento es el siguiente:
-\begin{enumerate}
-    \item **Descarga y Codificación:** El backend descarga los bytes de la imagen de los servidores de Meta, la convierte en formato binario y la transmite mediante una petición `POST` HTTP a la Lambda de AWS.
-    \item **AWS Rekognition:** La función Lambda recibe la imagen, invoca las APIs de **AWS Rekognition** para la detección y lectura del documento, y extrae métricas de clasificación de textura y análisis de bordes para detectar anomalías físicas.
-    \item **Retorno del Veredicto:** La Lambda responde con un objeto JSON que contiene la predicción, la confianza y el score obtenido.
-\end{enumerate}
+\subsection{Capa de Análisis: AWS Lambda y Servidor EC2}
+El análisis técnico de las imágenes para determinar la veracidad del documento y detectar fraudes físicos involucra tres componentes en AWS:
 
-\subsection{Capa Conversacional: Google Gemini 2.5 Flash}
-El orquestador utiliza la API de **Google Gemini 2.5 Flash** para humanizar las respuestas. Gemini recibe el prompt de contexto técnico (el JSON con los resultados de AWS Rekognition) y genera un mensaje amigable y claro en español para el usuario en WhatsApp. 
+### 1. Lambda Proxy: receiveCodedImage
+Expuesta mediante **Amazon API Gateway**, esta función actúa como un canalizador y formateador:
+- Recibe la imagen de la cédula en formato Base64 desde el orquestador de Render.
+- Remueve la cabecera del formato Base64 si existe y convierte el contenido en un buffer binario.
+- Realiza una petición HTTP `POST` multipart/form-data a la URL del servidor EC2 (`/evaluate/`).
+- Retorna al orquestador el veredicto consolidado (`score` y `detection`).
 
-Para evitar problemas de truncado del texto, se configuró un límite de `max_output_tokens = 1000` en la configuración de generación del modelo.
+### 2. Clasificador de Fraude en Instancia EC2
+La inteligencia de clasificación reside en una **Instancia EC2** dedicada:
+- Expone un servidor web (puerto `8001`) con el endpoint `/evaluate/`.
+- Ejecuta un modelo entrenado para la detección de fraude físico y anomalías en fotos.
+- Retorna un `score` probabilístico continuo de fraude ($S \in [0, 1]$) y un objeto `detection` con metadatos espaciales (grados de rotación, dimensiones de recorte y coordenadas).
+
+### 3. Lambdas Auxiliares de Soporte
+Adicionalmente, el entorno de desarrollo y almacenamiento cuenta con dos Lambdas auxiliares:
+- **lambda-s3-save:** Recibe la imagen en Base64, analiza los *magic bytes* del archivo para identificar su extensión (MIME Type: `image/jpeg`, `image/png`, etc.), genera un identificador UUID único, y sube el archivo a un bucket de **Amazon S3** (`S3_BUCKET_NAME`), retornando la URL pública estructurada.
+- **lambda-rekognition:** Permite la detección general de etiquetas sobre la imagen invocando el comando `DetectLabelsCommand` de **AWS Rekognition** directamente en memoria (sin requerir S3) para identificar la presencia de objetos clave con una confianza mínima del 70\%.
+
+\subsection{Capa Conversacional y Humanización: Google Gemini 2.5 Flash}
+El orquestador utiliza la API de **Google Gemini 2.5 Flash** para humanizar las respuestas. Gemini recibe el prompt de contexto técnico (el JSON retornado por AWS que contiene el `score` de EC2) y genera un mensaje amigable, libre de tecnicismos complejos y formateado para WhatsApp en español. Para prevenir el truncado del texto, se configuró un límite de `max_output_tokens = 1000` en la configuración del modelo.
