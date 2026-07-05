@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Supabase / Postgres
     database_url: str = ""
 
+    # Gemini API
+    gemini_api_key: str = ""
+
     @property
     def graph_base(self) -> str:
         return f"https://graph.facebook.com/{self.whatsapp_api_version}"
@@ -32,6 +35,7 @@ class Settings(BaseSettings):
             "WHATSAPP_VERIFY_TOKEN": self.whatsapp_verify_token,
             "FRAUD_API_URL": self.fraud_api_url,
             "DATABASE_URL": self.database_url,
+            "GEMINI_API_KEY": self.gemini_api_key,
         }
         return [name for name, value in required.items() if not value or value == "change-me"]
 

@@ -6,6 +6,8 @@ import logging
 from app.services import sessions
 from app.services.fraud_api import call_fraud_api
 from app.services.whatsapp import download_media, send_text_message
+from app.services.gemini import generate_humanized_message
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,22 +79,25 @@ async def handle_text(phone: str, text: str) -> None:
     normalized = text.strip().lower()
     if normalized in {"reiniciar", "reset", "empezar", "nuevo"}:
         await sessions.start_session(phone)
-        await send_text_message(phone, RESET_DONE)
+        greeting_msg = await generate_humanized_message("GREETING", {})
+        await send_text_message(phone, greeting_msg)
         return
 
     session = await sessions.get_session(phone)
     if session is None:
         await sessions.start_session(phone)
-        await send_text_message(phone, GREETING)
+        greeting_msg = await generate_humanized_message("GREETING", {})
+        await send_text_message(phone, greeting_msg)
         return
 
     state = session["state"]
-    if state == sessions.AWAITING_FRONT:
-        await send_text_message(phone, ASK_FRONT_AGAIN)
-    elif state == sessions.AWAITING_BACK:
-        await send_text_message(phone, ASK_BACK_AGAIN)
-    else:  # DONE
-        await send_text_message(phone, ALREADY_DONE)
+    # Responder de manera inteligente/conversacional al texto libre del usuario
+    response_msg = await generate_humanized_message(
+        "UNSUPPORTED_TEXT",
+        {"current_state": state, "user_text": text}
+    )
+    await send_text_message(phone, response_msg)
+
 
 
 async def handle_image(phone: str, media_id: str) -> None:
@@ -105,25 +110,46 @@ async def handle_image(phone: str, media_id: str) -> None:
     if state == sessions.AWAITING_FRONT:
         result = await _process_image(phone, media_id, "frontal")
         if "error" in result:
-            # No avanzamos: pedimos reenviar la misma cara.
-            await send_text_message(phone, FRONT_FAILED)
+            response_msg = await generate_humanized_message(
+                "AWAITING_FRONT_RESULT",
+                {"result": result}
+            )
+            await send_text_message(phone, response_msg)
             return
         await sessions.save_front(phone, result)
-        summary = _summarize("frontal", result)
-        await send_text_message(phone, f"{summary}\n\n{ASK_BACK}")
+        response_msg = await generate_humanized_message(
+            "AWAITING_FRONT_RESULT",
+            {"result": result}
+        )
+        await send_text_message(phone, response_msg)
 
     elif state == sessions.AWAITING_BACK:
         result = await _process_image(phone, media_id, "trasera")
         if "error" in result:
-            await send_text_message(phone, BACK_FAILED)
+            response_msg = await generate_humanized_message(
+                "AWAITING_BACK_RESULT",
+                {"back_result": result}
+            )
+            await send_text_message(phone, response_msg)
             return
         await sessions.save_back(phone, result)
-        summary = _summarize("trasera", result)
-        await send_text_message(
-            phone,
-            f"{summary}\n\n✅ *Analisis completado.* Procese ambas caras del documento.\n"
-            "Escribe *reiniciar* para analizar otro.",
+        
+        front_result = session["front_result"] if session else None
+        if not front_result:
+            # Re-leer para asegurar los datos de la frontal
+            updated_session = await sessions.get_session(phone)
+            front_result = updated_session["front_result"] if updated_session else {}
+
+        response_msg = await generate_humanized_message(
+            "AWAITING_BACK_RESULT",
+            {"front_result": front_result, "back_result": result}
         )
+        await send_text_message(phone, response_msg)
 
     else:  # DONE
-        await send_text_message(phone, ALREADY_DONE)
+        response_msg = await generate_humanized_message(
+            "UNSUPPORTED_TEXT",
+            {"current_state": sessions.DONE, "user_text": "[imagen]"}
+        )
+        await send_text_message(phone, response_msg)
+
