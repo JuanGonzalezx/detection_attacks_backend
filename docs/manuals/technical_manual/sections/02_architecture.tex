@@ -29,7 +29,7 @@ class AgentState(TypedDict):
 El flujo conversacional sigue una máquina de estados determinista guiada por la entrada del usuario:
 \begin{enumerate}
     \item **GreetingNode:** Saluda al usuario y solicita la foto frontal.
-    \item **ProcessFrontNode:** Descarga la imagen frontal de WhatsApp, invoca la API Gateway de AWS y transiciona a `AWAITING_BACK` si el documento es válido.
+    \item **ProcessFrontNode:** Descarga la imagen frontal de WhatsApp, invoca la API Gateway de AWS y transiciona a `AWAITING\_BACK` si el documento es válido.
     \item **ProcessBackNode:** Descarga la imagen trasera, invoca la API Gateway, realiza la consolidación del veredicto final y transiciona a `DONE`.
     \item **ResetNode:** Limpia los datos de sesión y reinicia el flujo cuando el usuario escribe *reiniciar*.
     \item **UnsupportedTextNode:** Responde con asistencia conversacional cuando se reciben mensajes fuera de la secuencia del flujo.
@@ -38,23 +38,29 @@ El flujo conversacional sigue una máquina de estados determinista guiada por la
 \subsection{Capa de Análisis: AWS Lambda y Servidor EC2}
 El análisis técnico de las imágenes para determinar la veracidad del documento y detectar fraudes físicos involucra tres componentes en AWS:
 
-### 1. Lambda Proxy: receiveCodedImage
+\subsubsection{Lambda Proxy: receiveCodedImage}
 Expuesta mediante **Amazon API Gateway**, esta función actúa como un canalizador y formateador:
-- Recibe la imagen de la cédula en formato Base64 desde el orquestador de Render.
-- Remueve la cabecera del formato Base64 si existe y convierte el contenido en un buffer binario.
-- Realiza una petición HTTP `POST` multipart/form-data a la URL del servidor EC2 (`/evaluate/`).
-- Retorna al orquestador el veredicto consolidado (`score` y `detection`).
+\begin{itemize}
+    \item Recibe la imagen de la cédula en formato Base64 desde el orquestador de Render.
+    \item Remueve la cabecera del formato Base64 si existe y convierte el contenido en un buffer binario.
+    \item Realiza una petición HTTP `POST` multipart/form-data a la URL del servidor EC2 (`/evaluate/`).
+    \item Retorna al orquestador el veredicto consolidado (`score` y `detection`).
+\end{itemize}
 
-### 2. Clasificador de Fraude en Instancia EC2
+\subsubsection{Clasificador de Fraude en Instancia EC2}
 La inteligencia de clasificación reside en una **Instancia EC2** dedicada:
-- Expone un servidor web (puerto `8001`) con el endpoint `/evaluate/`.
-- Ejecuta un modelo entrenado para la detección de fraude físico y anomalías en fotos.
-- Retorna un `score` probabilístico continuo de fraude ($S \in [0, 1]$) y un objeto `detection` con metadatos espaciales (grados de rotación, dimensiones de recorte y coordenadas).
+\begin{itemize}
+    \item Expone un servidor web (puerto `8001`) con el endpoint `/evaluate/`.
+    \item Ejecuta un modelo entrenado para la detección de fraude físico y anomalías en fotos.
+    \item Retorna un `score` probabilístico continuo de fraude ($S \in [0, 1]$) y un objeto `detection` con metadatos espaciales (grados de rotación, dimensiones de recorte y coordenadas).
+\end{itemize}
 
-### 3. Lambdas Auxiliares de Soporte
+\subsubsection{Lambdas Auxiliares de Soporte}
 Adicionalmente, el entorno de desarrollo y almacenamiento cuenta con dos Lambdas auxiliares:
-- **lambda-s3-save:** Recibe la imagen en Base64, analiza los *magic bytes* del archivo para identificar su extensión (MIME Type: `image/jpeg`, `image/png`, etc.), genera un identificador UUID único, y sube el archivo a un bucket de **Amazon S3** (`S3_BUCKET_NAME`), retornando la URL pública estructurada.
-- **lambda-rekognition:** Permite la detección general de etiquetas sobre la imagen invocando el comando `DetectLabelsCommand` de **AWS Rekognition** directamente en memoria (sin requerir S3) para identificar la presencia de objetos clave con una confianza mínima del 70\%.
+\begin{itemize}
+    \item **lambda-s3-save:** Recibe la imagen en Base64, analiza los *magic bytes* del archivo para identificar su extensión (MIME Type: `image/jpeg`, `image/png`, etc.), genera un identificador UUID único, y sube el archivo a un bucket de **Amazon S3** (`S3\_BUCKET\_NAME`), retornando la URL pública estructurada.
+    \item **lambda-rekognition:** Permite la detección general de etiquetas sobre la imagen invocando el comando `DetectLabelsCommand` de **AWS Rekognition** directamente en memoria (sin requerir S3) para identificar la presencia de objetos clave con una confianza mínima del 70\%.
+\end{itemize}
 
 \subsection{Capa Conversacional y Humanización: Google Gemini 2.5 Flash}
-El orquestador utiliza la API de **Google Gemini 2.5 Flash** para humanizar las respuestas. Gemini recibe el prompt de contexto técnico (el JSON retornado por AWS que contiene el `score` de EC2) y genera un mensaje amigable, libre de tecnicismos complejos y formateado para WhatsApp en español. Para prevenir el truncado del texto, se configuró un límite de `max_output_tokens = 1000` en la configuración del modelo.
+El orquestador utiliza la API de **Google Gemini 2.5 Flash** para humanizar las respuestas. Gemini recibe el prompt de contexto técnico (el JSON retornado por AWS que contiene el `score` de EC2) y genera un mensaje amigable, libre de tecnicismos complejos y formateado para WhatsApp en español. Para prevenir el truncado del texto, se configuró un límite de `max\_output\_tokens = 1000` en la configuración del modelo.

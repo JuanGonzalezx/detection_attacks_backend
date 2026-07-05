@@ -1,7 +1,7 @@
 \section{Modelo de Métricas y Fórmulas Matemáticas}
 \label{sec:metrics}
 
-Las métricas mostradas en el Dashboard de NeoAstrum se derivan de la consolidación de los registros históricos en la tabla `validation_logs`. Esta sección detalla la construcción conceptual y matemática de dichos indicadores.
+Las métricas mostradas en el Dashboard de NeoAstrum se derivan de la consolidación de los registros históricos en la tabla `validation\_logs`. Esta sección detalla la construcción conceptual y matemática de dichos indicadores.
 
 \subsection{Criterio de Clasificación de Fraude}
 El sistema asigna un veredicto binario sobre la veracidad del documento basándose en la puntuación de confianza $S$ retornada por el microservicio de AWS Rekognition. El modelo está calibrado para que $S \in [0, 1]$, donde un valor cercano a $0$ representa un documento real y un valor cercano a $1$ indica una sospecha o intento de fraude.
@@ -21,7 +21,7 @@ Este umbral coincide con la línea de decisión visible en los histogramas de di
 Sea $N_{\text{total}}$ el número total de transacciones registradas en el webhook, y sea $M$ el subconjunto de transacciones correspondientes al análisis de imágenes frontales ($N_{\text{front}}$) o traseras ($N_{\text{back}}$):
 
 \begin{equation}
-M = \{x \in \text{logs} \mid \text{node}(x) \in \{\text{`process\_front'}, \text{`process\_back'}\}\}
+M = \{x \in \text{logs} \mid \text{node}(x) \in \{\text{'process\_front'}, \text{'process\_back'}\} \}
 \end{equation}
 
 Definimos los indicadores de volumen del siguiente modo:
