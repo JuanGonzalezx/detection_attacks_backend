@@ -1,0 +1,34 @@
+\section{Guía del Dashboard de Monitoreo}
+\label{sec:dashboard}
+
+El Dashboard web de NeoAstrum proporciona visualizaciones en tiempo real del desempeño de las clasificaciones del bot. A continuación, se describen sus componentes principales.
+
+\subsection{Indicadores Clave (KPIs)}
+Ubicados en la parte superior del panel, muestran de forma resumida el estado del canal:
+\begin{itemize}
+    \item **Total Validations (Active Engine):** Conteo acumulado de transacciones recibidas.
+    \item **Predicted Real / Authentic:** Cantidad de cédulas validadas como legítimas.
+    \item **Predicted Fraud / Fake:** Cantidad de anomalías o ataques de suplantación detectados.
+    \item **Percentage of Real (\%) / Percentage of Fraud (\%):** Proporción en porcentaje de cédulas aprobadas frente a sospechosas de fraude con precisión de 3 decimales.
+\end{itemize}
+
+\subsection{Histogramas de Distribución de Score}
+Permiten analizar el comportamiento de las respuestas del modelo:
+\begin{itemize}
+    \item **Front/Reverse Prediction Score Distribution:** Dos gráficos de barra que exponen las predicciones en el rango continuo `[0.0, 1.0]`. 
+    \item **Umbral $\tau = 0.5$:** Las barras a la izquierda del umbral representan documentos reales (color verde) y las que caen a la derecha indican intentos fraudulentos.
+\end{itemize}
+
+\subsection{Tendencia y Volumen Diario}
+- **Daily Number of Fraud Predictions:** Gráfico de área apilado que muestra el volumen absoluto de validaciones aprobadas reales frente a fraudes detectados por día.
+- **Daily Percentage of Fraud Detections:** Gráfico de área apilada al 100\% que facilita la visualización de la proporción diaria de fraudes y alertas detectadas sobre el volumen total.
+
+\subsection{Monitoreo de Latencias y Tiempos de Respuesta}
+El gráfico lineal de latencias grafica en milisegundos el tiempo consumido por los servicios:
+\begin{itemize}
+    \item **AWS Lambda (Rekognition):** Tiempo que toma procesar y clasificar la imagen.
+    \item **Google Gemini:** Tiempo consumido para humanizar la respuesta final.
+\end{itemize}
+
+\subsection{Tabla de Historial (Summary of Document Validation)}
+Muestra la bitácora consolidada de transacciones. Agrupa los eventos frontal y trasero de un usuario en un único registro para fácil auditoría. Se puede filtrar interactivamente por veredicto (*Todos*, *Real*, o *Fraude*).

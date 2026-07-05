@@ -1,0 +1,24 @@
+\section{Guía de Interacción por WhatsApp}
+\label{sec:interaction}
+
+El bot opera como una conversación interactiva estructurada por estados. A continuación se detalla cómo operar el flujo conversacional.
+
+\subsection{Paso 1: Saludo e Inicio del Proceso}
+Para iniciar el flujo, el usuario puede enviar cualquier saludo común (como *"Hola"*, *"Buenas noches"*) o el comando específico **`reiniciar`**. El bot responderá saludándolo y solicitando la foto de la parte frontal de su cédula.
+
+\subsection{Paso 2: Envío de la Cédula Frontal}
+El usuario debe adjuntar y enviar la foto de la **cara frontal** de su cédula colombiana. 
+\begin{itemize}
+    \item **Si la foto es correcta:** El bot confirmará la recepción exitosa del documento frontal y solicitará que envíe la parte trasera.
+    \item **Si hay problemas de calidad (score bajo) o errores en el análisis:** El bot le sugerirá amablemente tomar la foto nuevamente bajo mejores condiciones de iluminación y nitidez.
+\end{itemize}
+
+\subsection{Paso 3: Envío de la Cédula Trasera}
+El usuario envía la foto de la **cara trasera** del documento. El sistema consolidará los análisis de ambas imágenes y emitirá un veredicto en tiempo real.
+
+\subsection{Paso 4: Veredicto Final y Cierre}
+- **Veredicto Exitoso (Auténtica):** El bot informará que el proceso se ha completado correctamente y se despedirá cordialmente.
+- **Sospecha de Fraude o Rechazo:** Si alguna de las caras muestra indicadores de fraude (fotocopia a color, visualización en pantallas), el bot informará que la verificación automática no fue exitosa e instruirá al usuario sobre cómo contactar a soporte o reiniciar.
+
+\subsection{Comando Especial: Reiniciar}
+El usuario puede escribir la palabra **`reiniciar`** (no distingue mayúsculas) en cualquier etapa del proceso. Esto limpiará inmediatamente todos los datos y el progreso del usuario, restaurando su sesión al estado de saludo inicial.

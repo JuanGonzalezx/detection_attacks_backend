@@ -1,0 +1,60 @@
+\section{Modelo de Métricas y Fórmulas Matemáticas}
+\label{sec:metrics}
+
+Las métricas mostradas en el Dashboard de NeoAstrum se derivan de la consolidación de los registros históricos en la tabla `validation_logs`. Esta sección detalla la construcción conceptual y matemática de dichos indicadores.
+
+\subsection{Criterio de Clasificación de Fraude}
+El sistema asigna un veredicto binario sobre la veracidad del documento basándose en la puntuación de confianza $S$ retornada por el microservicio de AWS Rekognition. El modelo está calibrado para que $S \in [0, 1]$, donde un valor cercano a $0$ representa un documento real y un valor cercano a $1$ indica una sospecha o intento de fraude.
+
+Definimos el veredicto de fraude como una función indicadora $I_{\text{fraude}}$ con un umbral de decisión $\tau = 0.5$:
+
+\begin{equation}
+I_{\text{fraude}}(S) = \begin{cases} 
+1 & \text{si } S \ge 0.5 \quad \text{(FRAUDE / Sospecha)} \\
+0 & \text{si } S < 0.5 \quad \text{(REAL / Aprobado)}
+\end{cases}
+\end{equation}
+
+Este umbral coincide con la línea de decisión visible en los histogramas de distribución del dashboard.
+
+\subsection{Indicadores Clave de Rendimiento (KPIs)}
+Sea $N_{\text{total}}$ el número total de transacciones registradas en el webhook, y sea $M$ el subconjunto de transacciones correspondientes al análisis de imágenes frontales ($N_{\text{front}}$) o traseras ($N_{\text{back}}$):
+
+\begin{equation}
+M = \{x \in \text{logs} \mid \text{node}(x) \in \{\text{`process\_front'}, \text{`process\_back'}\}\}
+\end{equation}
+
+Definimos los indicadores de volumen del siguiente modo:
+\begin{align}
+\text{Total Validations} &= N_{\text{total}} \\
+\text{Predicted Real} &= \sum_{i \in M} (1 - I_{\text{fraude}}(S_i)) \\
+\text{Predicted Fraud} &= \sum_{i \in M} I_{\text{fraude}}(S_i)
+\end{align}
+
+Las tasas porcentuales de clasificación se formulan como:
+\begin{equation}
+\text{Percentage of Real (\%)} = \left( \frac{\text{Predicted Real}}{|M|} \right) \times 100
+\end{equation}
+
+\begin{equation}
+\text{Percentage of Fraud (\%)} = \left( \frac{\text{Predicted Fraud}}{|M|} \right) \times 100
+\end{equation}
+
+\subsection{Histogramas de Distribución de Scores}
+Para analizar la distribución probabilística del clasificador, se agrupan los scores continuos de cada transacción en $K=10$ bins de ancho constante $W = 0.1$. El conteo de registros $C_k$ en el bin $k$ (donde $k \in \{1, 2, \dots, 10\}$) se define como:
+
+\begin{equation}
+C_k = |\{i \in M \mid S_i \in [ (k-1) \cdot 0.1, \ k \cdot 0.1 ) \}|
+\end{equation}
+*(Para el último bin $k=10$, el intervalo es cerrado por la derecha $[0.9, 1.0]$).*
+
+\subsection{Promedios de Latencia y Tiempos de Respuesta}
+Sea $L_{\text{AWS}, i}$ la latencia en milisegundos de la transacción $i$ en AWS Lambda, y sea $L_{\text{Gemini}, i}$ la latencia del servicio de humanización de Gemini. Los promedios aritméticos generales mostrados en el dashboard se calculan como:
+
+\begin{equation}
+\bar{L}_{\text{AWS}} = \frac{1}{|M|} \sum_{i \in M} L_{\text{AWS}, i}
+\end{equation}
+
+\begin{equation}
+\bar{L}_{\text{Gemini}} = \frac{1}{|M|} \sum_{i \in M} L_{\text{Gemini}, i}
+\end{equation}

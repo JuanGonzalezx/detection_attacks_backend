@@ -1,0 +1,49 @@
+\section{Arquitectura del Sistema}
+\label{sec:architecture}
+
+El sistema NeoAstrum adopta una arquitectura modular distribuida dividida en tres capas principales: la interfaz conversacional, el orquestador de lógica de negocio y los servicios cognitivos de análisis.
+
+\subsection{Capa Orquestadora: FastAPI y LangGraph}
+El backend principal está construido utilizando el framework de alto rendimiento **FastAPI**. La gestión de la conversación es controlada por **LangGraph**, que modela el flujo de validación como un grafo de estados dirigido. El estado de la conversación se modela en la estructura de datos `AgentState`:
+
+\begin{lstlisting}[language=Python, caption=Definición de AgentState en el Orquestador]
+class AgentState(TypedDict):
+    phone: str
+    input_text: str | None
+    media_id: str | None
+    current_state: str  # GREETING, AWAITING_FRONT, AWAITING_BACK, DONE
+    front_result: dict | None
+    back_result: dict | None
+    response: str
+    latency_aws_ms: int | None
+    latency_gemini_ms: int | None
+    node_executed: str | None
+    status: str
+    is_photocopy: bool
+    lambda_score: float | None
+    lambda_confidence: float | None
+    lambda_response: dict | None
+\end{lstlisting}
+
+\subsection{Lógica de Transición de Estados}
+El flujo conversacional sigue una máquina de estados determinista guiada por la entrada del usuario:
+\begin{enumerate}
+    \item **GreetingNode:** Saluda al usuario y solicita la foto frontal.
+    \item **ProcessFrontNode:** Descarga la imagen frontal de WhatsApp, invoca la Lambda de AWS y transiciona a `AWAITING_BACK` si la imagen es válida.
+    \item **ProcessBackNode:** Descarga la imagen trasera, invoca la Lambda, realiza la consolidación del veredicto final y transiciona a `DONE`.
+    \item **ResetNode:** Limpia los datos de sesión y reinicia el flujo cuando el usuario escribe *reiniciar*.
+    \item **UnsupportedTextNode:** Responde con asistencia conversacional cuando se reciben mensajes fuera de la secuencia del flujo.
+\end{enumerate}
+
+\subsection{Integración con AWS Lambda y Rekognition}
+Para la evaluación de las imágenes, el orquestador se conecta de forma segura a una API expuesta en AWS que ejecuta una función Lambda. El flujo técnico de procesamiento es el siguiente:
+\begin{enumerate}
+    \item **Descarga y Codificación:** El backend descarga los bytes de la imagen de los servidores de Meta, la convierte en formato binario y la transmite mediante una petición `POST` HTTP a la Lambda de AWS.
+    \item **AWS Rekognition:** La función Lambda recibe la imagen, invoca las APIs de **AWS Rekognition** para la detección y lectura del documento, y extrae métricas de clasificación de textura y análisis de bordes para detectar anomalías físicas.
+    \item **Retorno del Veredicto:** La Lambda responde con un objeto JSON que contiene la predicción, la confianza y el score obtenido.
+\end{enumerate}
+
+\subsection{Capa Conversacional: Google Gemini 2.5 Flash}
+El orquestador utiliza la API de **Google Gemini 2.5 Flash** para humanizar las respuestas. Gemini recibe el prompt de contexto técnico (el JSON con los resultados de AWS Rekognition) y genera un mensaje amigable y claro en español para el usuario en WhatsApp. 
+
+Para evitar problemas de truncado del texto, se configuró un límite de `max_output_tokens = 1000` en la configuración de generación del modelo.

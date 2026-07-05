@@ -1,0 +1,46 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+
+\geometry{top=1in, bottom=1in, left=1in, right=1in}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Manual de Usuario — NeoAstrum}
+\fancyhead[R]{Julio 2026}
+\fancyfoot[C]{\thepage}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge\bfseries Manual de Usuario del Sistema NeoAstrum\par}
+    \vspace{1cm}
+    {\Large\bfseries Guía Práctica de Operación Conversacional y Dashboard de Métricas\par}
+    \vspace{2cm}
+    
+    {\large\bfseries Equipo de Soporte y Operaciones NeoAstrum\par}
+    \vfill
+    
+    {\large Julio 2026 \par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\input{sections/01_overview.tex}
+\input{sections/02_interaction.tex}
+\input{sections/03_dashboard.tex}
+\input{sections/04_troubleshooting.tex}
+
+\end{document}

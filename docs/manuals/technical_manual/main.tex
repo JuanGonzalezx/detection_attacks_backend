@@ -1,0 +1,67 @@
+\documentclass[10pt,journal,compsoc]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{color}
+
+\geometry{margin=1in}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\begin{document}
+
+\title{Manual Técnico de la Arquitectura: Sistema de Verificación de Identidad y Detección de Fraude en Cédulas por WhatsApp}
+
+\author{Equipo de Ingeniería de NeoAstrum}
+
+\markboth{Manual Técnico del Software,~Vol.~1, No.~1, Julio~2026}%
+{Asistente de Detección de Fraude por WhatsApp}
+
+\IEEEtitleabstractindextext{%
+\begin{abstract}
+Este documento describe formalmente la arquitectura de software, el diseño del grafo de estados conversacional, el modelo de datos persistido en Supabase, la integración con las API de AWS (Lambda y Rekognition), y los modelos de análisis de métricas para la detección de fraude mediante fotos de la cédula colombiana recibidas a través del canal de WhatsApp. El sistema combina técnicas de procesamiento de lenguaje natural generativo (Google Gemini 2.5 Flash) y machine learning de visión artificial (AWS Rekognition) para automatizar el veredicto de autenticidad en tiempo real.
+\end{abstract}
+}
+
+\maketitle
+
+\IEEEdisplaynontitleabstractindextext
+\IEEEpeerreviewmaketitle
+
+\input{sections/01_introduction.tex}
+\input{sections/02_architecture.tex}
+\input{sections/03_database.tex}
+\input{sections/04_metrics.tex}
+
+\end{document}

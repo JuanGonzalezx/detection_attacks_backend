@@ -1,0 +1,21 @@
+\section{Solución de Problemas Comunes}
+\label{sec:troubleshooting}
+
+Esta sección resume las principales incidencias que pueden presentarse durante la operación del bot conversacional de WhatsApp y sus soluciones recomendadas.
+
+\subsection{Problema 1: El bot no responde}
+* **Causa:** El servidor de backend en FastAPI o la conexión de red está caída.
+* **Solución:**
+    1. Revisa el estado del servicio en Render (visita `https://detection-attacks-whatsapp.onrender.com/`).
+    2. Verifica los logs de ejecución de FastAPI y asegúrate de que no haya un error de inicialización del pooler de la base de datos de Supabase.
+
+\subsection{Problema 2: El bot rechaza fotos reales}
+* **Causa:** Mala calidad en la captura de la cámara (borrosa, con reflejos de luz o inclinación pronunciada), lo que arroja un score erróneo por encima del umbral `0.5`.
+* **Solución:**
+    1. Aconseja al usuario tomar la foto con luz indirecta (evitando el flash directo sobre la cédula plástica).
+    2. Mantener la cédula sobre un fondo oscuro y plano, alineada y enfocada en paralelo a la cámara.
+
+\subsection{Problema 3: Error de Timeout de AWS Lambda (HTTP 500)}
+* **Causa:** La Lambda `receiveCodedImage` en AWS se desborda en tiempo de ejecución (timeout inicial de 3 segundos superado).
+* **Solución:**
+    1. Asegúrate de configurar el timeout de la Lambda de AWS a 30 segundos y aumentar la memoria física a un mínimo de 512MB/1024MB en la consola de AWS. Esto evitará caídas por consumo de recursos al procesar imágenes de alta resolución.

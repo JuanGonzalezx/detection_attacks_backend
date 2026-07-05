@@ -1,0 +1,57 @@
+\section{Modelo de Datos y Persistencia}
+\label{sec:database}
+
+El sistema utiliza una base de datos relacional **PostgreSQL** alojada en **Supabase** para mantener el estado de las conversaciones y registrar los eventos históricos para su análisis estadístico.
+
+\subsection{Esquema de Tablas}
+La base de datos consta de dos tablas principales: `whatsapp_sessions` y `validation_logs`.
+
+### 1. Tabla: whatsapp\_sessions
+Esta tabla almacena el estado actual de la sesión del usuario. Se indexa por el número de teléfono del cliente para garantizar transiciones de estado rápidas.
+
+\begin{table}[h]
+\centering
+\caption{Atributos de la tabla whatsapp\_sessions}
+\begin{tabular}{lll}
+\toprule
+**Columna** & **Tipo** & **Descripción** \\
+\midrule
+`phone` & TEXT (PK) & Número de teléfono del usuario. \\
+`state` & TEXT & Estado actual de la máquina de estados. \\
+`front_result` & JSONB & Metadatos técnicos de la cara frontal. \\
+`back_result` & JSONB & Metadatos técnicos de la cara trasera. \\
+`updated_at` & TIMESTAMPTZ & Fecha y hora del último mensaje. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+### 2. Tabla: validation\_logs
+Esta tabla registra cada una de las interacciones y transacciones procesadas por el bot. Es la fuente de datos principal para el Dashboard de monitoreo.
+
+\begin{table}[h]
+\centering
+\caption{Atributos de la tabla validation\_logs}
+\begin{tabular}{lll}
+\toprule
+**Columna** & **Tipo** & **Descripción** \\
+\midrule
+`id` & SERIAL (PK) & Identificador único correlativo. \\
+`phone` & TEXT & Número de teléfono del usuario. \\
+`timestamp` & TIMESTAMPTZ & Fecha y hora del procesamiento. \\
+`node` & TEXT & Nombre del nodo ejecutado. \\
+`whatsapp_message_id` & TEXT & Identificador wamid de Meta. \\
+`lambda_score` & NUMERIC & Score de fraude obtenido. \\
+`lambda_confidence` & NUMERIC & Confianza de detección de cédula. \\
+`lambda_response` & JSONB & Respuesta JSON completa de AWS. \\
+`latency_aws_ms` & INTEGER & Latencia del API de AWS (ms). \\
+`latency_gemini_ms` & INTEGER & Latencia del API de Gemini (ms). \\
+`status` & TEXT & Estado del resultado de la petición. \\
+`is_photocopy` & BOOLEAN & Indicador binario de fraude. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Restricciones de Pooling en Supabase}
+Dado que Supabase implementa un Connection Pooler (PgBouncer) configurado en **modo transacción** para manejar altas concurrencias (puerto `6543`), se configuró explícitamente el parámetro `statement_cache_size=0` en la librería `asyncpg` en el backend. 
+
+Esta configuración es obligatoria para evitar errores de ejecución en la base de datos debido al reuso indebido de prepared statements a nivel de sesión en el pooler.
