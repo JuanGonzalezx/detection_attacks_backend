@@ -19,6 +19,21 @@ CREATE TABLE IF NOT EXISTS whatsapp_sessions (
     back_result  JSONB,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS validation_logs (
+    id SERIAL PRIMARY KEY,
+    phone TEXT NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
+    node TEXT NOT NULL,
+    whatsapp_message_id TEXT,
+    lambda_score NUMERIC,
+    lambda_confidence NUMERIC,
+    lambda_response JSONB,
+    latency_aws_ms INTEGER,
+    latency_gemini_ms INTEGER,
+    status TEXT NOT NULL,
+    is_photocopy BOOLEAN NOT NULL DEFAULT FALSE
+);
 """
 
 

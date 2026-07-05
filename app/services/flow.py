@@ -1,7 +1,8 @@
-"""Orquestación del flujo conversacional usando LangGraph."""
+"""Orquestación del flujo conversacional usando LangGraph con telemetría de métricas."""
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -14,7 +15,7 @@ from app.services.whatsapp import download_media, send_text_message
 logger = logging.getLogger(__name__)
 
 
-# 1. Definición del Estado de la Conversación
+# 1. Definición del Estado de la Conversación (con campos de telemetría/métricas)
 class AgentState(TypedDict):
     phone: str
     input_text: str | None
@@ -23,6 +24,16 @@ class AgentState(TypedDict):
     front_result: dict | None
     back_result: dict | None
     response: str
+    
+    # Telemetría para métricas
+    latency_aws_ms: int | None
+    latency_gemini_ms: int | None
+    node_executed: str | None
+    status: str
+    is_photocopy: bool
+    lambda_score: float | None
+    lambda_confidence: float | None
+    lambda_response: dict | None
 
 
 # 2. Descarga y procesamiento de imágenes con el Lambda
@@ -43,12 +54,24 @@ async def _process_image(phone: str, media_id: str, side: str) -> dict:
 async def reset_flow_node(state: AgentState) -> dict[str, Any]:
     """Reinicia la sesión limpiando resultados y saludando al usuario."""
     logger.info("Nodo [reset_flow_node] ejecutado para %s", state["phone"])
+    
+    start_gemini = time.perf_counter()
     response_msg = await generate_humanized_message("GREETING", {})
+    latency_gemini = int((time.perf_counter() - start_gemini) * 1000)
+
     return {
         "current_state": "AWAITING_FRONT",
         "front_result": None,
         "back_result": None,
         "response": response_msg,
+        "latency_aws_ms": None,
+        "latency_gemini_ms": latency_gemini,
+        "node_executed": "reset_flow",
+        "status": "success",
+        "is_photocopy": False,
+        "lambda_score": None,
+        "lambda_confidence": None,
+        "lambda_response": None,
     }
 
 
@@ -57,22 +80,63 @@ async def process_front_node(state: AgentState) -> dict[str, Any]:
     logger.info("Nodo [process_front_node] ejecutado para %s", state["phone"])
     media_id = state["media_id"]
     if not media_id:
-        return {"response": "Error interno: no se proporcionó ID de imagen."}
-
-    result = await _process_image(state["phone"], media_id, "frontal")
-    if "error" in result:
-        # Si falló, mantenemos el estado actual pidiendo que reenvíe
-        response_msg = await generate_humanized_message("AWAITING_FRONT_RESULT", {"result": result})
         return {
-            "response": response_msg,
+            "response": "Error interno: no se proporcionó ID de imagen.",
+            "node_executed": "process_front",
+            "status": "error",
+            "is_photocopy": False,
+            "latency_aws_ms": None,
+            "latency_gemini_ms": None,
+            "lambda_score": None,
+            "lambda_confidence": None,
+            "lambda_response": None,
         }
 
-    # Si fue exitoso, avanzamos a esperar la trasera
+    start_aws = time.perf_counter()
+    result = await _process_image(state["phone"], media_id, "frontal")
+    latency_aws = int((time.perf_counter() - start_aws) * 1000)
+
+    start_gemini = time.perf_counter()
     response_msg = await generate_humanized_message("AWAITING_FRONT_RESULT", {"result": result})
+    latency_gemini = int((time.perf_counter() - start_gemini) * 1000)
+
+    if "error" in result:
+        # Si falló, mantenemos el estado actual
+        return {
+            "response": response_msg,
+            "latency_aws_ms": latency_aws,
+            "latency_gemini_ms": latency_gemini,
+            "node_executed": "process_front",
+            "status": "error",
+            "is_photocopy": False,
+            "lambda_score": None,
+            "lambda_confidence": None,
+            "lambda_response": result,
+        }
+
+    # Analizar score e indicar si es fotocopia (0 = Real, 1 = Fotocopia, umbral 0.5)
+    score = result.get("score") or result.get("confidence") or result.get("fraudScore")
+    confidence = result.get("detection", {}).get("confidence")
+    
+    is_photocopy = False
+    status = "success"
+    if score is not None and score >= 0.5:
+        is_photocopy = True
+        status = "fraud_detected"
+
+
     return {
         "current_state": "AWAITING_BACK",
         "front_result": result,
         "response": response_msg,
+        "latency_aws_ms": latency_aws,
+        "latency_gemini_ms": latency_gemini,
+        "node_executed": "process_front",
+        "status": status,
+        "is_photocopy": is_photocopy,
+        "lambda_score": score,
+        "lambda_confidence": confidence,
+        "lambda_response": result,
     }
 
 
@@ -81,26 +145,73 @@ async def process_back_node(state: AgentState) -> dict[str, Any]:
     logger.info("Nodo [process_back_node] ejecutado para %s", state["phone"])
     media_id = state["media_id"]
     if not media_id:
-        return {"response": "Error interno: no se proporcionó ID de imagen trasera."}
-
-    result = await _process_image(state["phone"], media_id, "trasera")
-    if "error" in result:
-        # Si falló, mantenemos AWAITING_BACK y pedimos reenvío
-        response_msg = await generate_humanized_message("AWAITING_BACK_RESULT", {"back_result": result})
         return {
-            "response": response_msg,
+            "response": "Error interno: no se proporcionó ID de imagen trasera.",
+            "node_executed": "process_back",
+            "status": "error",
+            "is_photocopy": False,
+            "latency_aws_ms": None,
+            "latency_gemini_ms": None,
+            "lambda_score": None,
+            "lambda_confidence": None,
+            "lambda_response": None,
         }
 
-    # Si fue exitoso, avanzamos a DONE y consolidamos resultados
+    start_aws = time.perf_counter()
+    result = await _process_image(state["phone"], media_id, "trasera")
+    latency_aws = int((time.perf_counter() - start_aws) * 1000)
+
     front_result = state["front_result"] or {}
+    start_gemini = time.perf_counter()
     response_msg = await generate_humanized_message(
         "AWAITING_BACK_RESULT",
         {"front_result": front_result, "back_result": result},
     )
+    latency_gemini = int((time.perf_counter() - start_gemini) * 1000)
+
+    if "error" in result:
+        # Si falló, mantenemos AWAITING_BACK
+        return {
+            "response": response_msg,
+            "latency_aws_ms": latency_aws,
+            "latency_gemini_ms": latency_gemini,
+            "node_executed": "process_back",
+            "status": "error",
+            "is_photocopy": False,
+            "lambda_score": None,
+            "lambda_confidence": None,
+            "lambda_response": result,
+        }
+
+    # Analizar consolidación (0 = Real, 1 = Fotocopia, umbral 0.5)
+    score = result.get("score") or result.get("confidence") or result.get("fraudScore")
+    confidence = result.get("detection", {}).get("confidence")
+    
+    is_photocopy = False
+    status = "success"
+    if score is not None and score >= 0.5:
+        is_photocopy = True
+        status = "fraud_detected"
+
+    # Revisar también si la frontal fue fraude (umbral 0.5)
+    front_score = front_result.get("score") or front_result.get("confidence") or front_result.get("fraudScore")
+    if front_score is not None and front_score >= 0.5:
+        is_photocopy = True
+        status = "fraud_detected"
+
+
     return {
         "current_state": "DONE",
         "back_result": result,
         "response": response_msg,
+        "latency_aws_ms": latency_aws,
+        "latency_gemini_ms": latency_gemini,
+        "node_executed": "process_back",
+        "status": status,
+        "is_photocopy": is_photocopy,
+        "lambda_score": score,
+        "lambda_confidence": confidence,
+        "lambda_response": result,
     }
 
 
@@ -108,12 +219,24 @@ async def handle_unsupported_node(state: AgentState) -> dict[str, Any]:
     """Maneja mensajes de texto libre o archivos no soportados en el estado actual."""
     logger.info("Nodo [handle_unsupported_node] ejecutado para %s", state["phone"])
     text = state["input_text"] or "[imagen/archivo no soportado]"
+    
+    start_gemini = time.perf_counter()
     response_msg = await generate_humanized_message(
         "UNSUPPORTED_TEXT",
         {"current_state": state["current_state"], "user_text": text},
     )
+    latency_gemini = int((time.perf_counter() - start_gemini) * 1000)
+
     return {
         "response": response_msg,
+        "latency_aws_ms": None,
+        "latency_gemini_ms": latency_gemini,
+        "node_executed": "handle_unsupported",
+        "status": "success",
+        "is_photocopy": False,
+        "lambda_score": None,
+        "lambda_confidence": None,
+        "lambda_response": None,
     }
 
 
@@ -156,7 +279,7 @@ workflow.set_conditional_entry_point(
     },
 )
 
-# Transiciones finales (todos los nodos terminan el turno y esperan la siguiente interacción)
+# Transiciones finales
 workflow.add_edge("reset_flow", END)
 workflow.add_edge("process_front", END)
 workflow.add_edge("process_back", END)
@@ -193,13 +316,21 @@ async def _run_graph_and_persist(
         "front_result": front_result,
         "back_result": back_result,
         "response": "",
+        "latency_aws_ms": None,
+        "latency_gemini_ms": None,
+        "node_executed": None,
+        "status": "success",
+        "is_photocopy": False,
+        "lambda_score": None,
+        "lambda_confidence": None,
+        "lambda_response": None,
     }
 
     # Ejecutar el grafo de estados
     logger.info("Ejecutando grafo para %s en estado %s", phone, current_state)
     final_state = await graph.ainvoke(initial_state)
 
-    # Persistir el estado resultante
+    # Persistir el estado resultante de la sesión
     new_state = final_state["current_state"]
     new_front = final_state["front_result"]
     new_back = final_state["back_result"]
@@ -211,9 +342,30 @@ async def _run_graph_and_persist(
     elif new_state == "DONE" and new_back is not None:
         await sessions.save_back(phone, new_back)
 
-    # Enviar respuesta al usuario
+    # Enviar respuesta al usuario y capturar ID del mensaje
+    msg_id = None
     if final_state["response"]:
-        await send_text_message(phone, final_state["response"])
+        ok, msg_id = await send_text_message(phone, final_state["response"])
+
+    # Registrar el evento en la base de datos para métricas (si se ejecutó un nodo válido)
+    node_executed = final_state.get("node_executed")
+    if node_executed:
+        try:
+            await sessions.log_validation_event(
+                phone=phone,
+                node=node_executed,
+                whatsapp_message_id=msg_id,
+                lambda_score=final_state.get("lambda_score"),
+                lambda_confidence=final_state.get("lambda_confidence"),
+                lambda_response=final_state.get("lambda_response"),
+                latency_aws_ms=final_state.get("latency_aws_ms"),
+                latency_gemini_ms=final_state.get("latency_gemini_ms"),
+                status=final_state.get("status", "success"),
+                is_photocopy=final_state.get("is_photocopy", False),
+            )
+            logger.info("Métrica registrada en base de datos para el nodo %s", node_executed)
+        except Exception:
+            logger.exception("Error al registrar evento de métricas para %s", phone)
 
 
 async def handle_text(phone: str, text: str) -> None:

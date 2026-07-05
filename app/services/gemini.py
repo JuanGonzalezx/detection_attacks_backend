@@ -22,6 +22,7 @@ SYSTEM_INSTRUCTION = (
     "- NUNCA muestres JSON crudo o detalles técnicos que confundan al usuario (por ejemplo, coordenadas X/Y de cajas delimitadoras, bounding boxes, s3_keys, o hashes internos).\n"
     "- Explica los resultados (como el score de coincidencia o problemas con el ángulo de la foto) de forma comprensible para una persona común.\n"
     "- El bot solo procesa cédulas. Si el usuario pregunta cosas no relacionadas, sé cortés pero redirígelo al flujo del documento.\n"
+    "- NUNCA saludes al usuario (no digas '¡Hola!', 'Hola', 'Buenos días', etc.) en los mensajes intermedios si la conversación ya está en curso, es decir, en los estados de análisis de imágenes (frontal o trasera). Solo debes saludar si el usuario está iniciando el proceso de cero (estado GREETING) o si su mensaje en UNSUPPORTED_TEXT es un saludo explícito.\n"
 )
 
 
@@ -63,6 +64,7 @@ async def generate_humanized_message(
             f"El usuario envió la foto frontal de su cédula. El modelo de Rekognition devolvió el siguiente análisis técnico:\n"
             f"{json.dumps(result, indent=2)}\n\n"
             "Analiza el resultado:\n"
+            "IMPORTANTE: NO saludes al usuario en este mensaje (no digas 'Hola' ni '¡Hola!'). Comienza directamente reportando la recepción de la imagen frontal.\n"
             "- Si el análisis falló (por ejemplo, si contiene un campo 'error'), pídele amablemente que por favor vuelva a tomar la foto de la parte frontal, asegurando buena luz y enfoque.\n"
             "- Si fue exitoso: indícale que la foto frontal fue recibida correctamente. Si los valores técnicos parecen correctos (score/confianza aceptable), felicítalo e indícale que ahora envíe la foto de la PARTE TRASERA para finalizar.\n"
             "- Si el score de detección/confianza es alarmantemente bajo o hay advertencias de imagen no apta, sugiérele con tacto repetir la foto frontal dando consejos simples (sin reflejos, cédula plana, enfoque nítido)."
@@ -75,7 +77,8 @@ async def generate_humanized_message(
             f"Frontal: {json.dumps(front, indent=2)}\n"
             f"Trasera: {json.dumps(back, indent=2)}\n\n"
             "Genera el mensaje final de validación:\n"
-            "- Si ambos análisis son exitosos y con métricas que no apuntan a un fraude evidente (por ejemplo, confianza de detección de cédula o score aceptables): indícale que su documento ha sido validado correctamente. Felicítalo y explícale que el proceso fue exitoso. Despídete amablemente y recuérdale que si desea verificar otro documento, puede escribir *reiniciar*.\n"
+            "IMPORTANTE: NO saludes al usuario en este mensaje (no digas 'Hola' ni '¡Hola!'). Ve directamente al grano.\n"
+            "- Si ambos análisis son exitosos y con métricas que no apuntan a un fraude evidente (por ejemplo, confianza de detección de cédula o score aceptables): indícale que su documento ha sido validado correctamente. Felicítalo y explícaselo. Despídete amablemente y recuérdale que si desea verificar otro documento, puede escribir *reiniciar*.\n"
             "- Si hay sospechas o scores bajos en alguna de las caras (fraude, foto de foto, pantalla, etc.): explícale de forma muy respetuosa y sutil que la verificación automática no fue exitosa. Aconséjale volver a intentarlo tomando fotos en un fondo plano con luz natural, y que puede escribir *reiniciar* para volver a empezar, o contactar a soporte."
         )
     elif flow_state == "UNSUPPORTED_TEXT":
@@ -89,7 +92,8 @@ async def generate_humanized_message(
 
         user_prompt = (
             f"El usuario está en el paso de proporcionar {state_desc}, pero en lugar de eso envió el siguiente texto: '{user_text}'.\n\n"
-            "Responde a su mensaje de forma conversacional y agradable (saluda si es un saludo, responde brevemente si es una pregunta), "
+            "IMPORTANTE: NO saludes al usuario a menos que su mensaje sea estrictamente un saludo (como 'hola', 'buenas', 'buenos días'). "
+            "Si es una pregunta, afirmación o duda, responde directamente y con amabilidad, "
             f"y recuérdale suavemente que para continuar con el proceso necesita enviar {state_desc}. "
             "Menciona que también puede escribir *reiniciar* en cualquier momento para empezar de nuevo."
         )

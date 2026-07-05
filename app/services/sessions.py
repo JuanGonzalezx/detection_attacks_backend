@@ -78,3 +78,40 @@ async def save_back(phone: str, result: dict) -> None:
 async def reset_session(phone: str) -> None:
     pool = get_pool()
     await pool.execute("DELETE FROM whatsapp_sessions WHERE phone = $1", phone)
+
+
+async def log_validation_event(
+    phone: str,
+    node: str,
+    whatsapp_message_id: str | None,
+    lambda_score: float | None,
+    lambda_confidence: float | None,
+    lambda_response: dict | None,
+    latency_aws_ms: int | None,
+    latency_gemini_ms: int | None,
+    status: str,
+    is_photocopy: bool,
+) -> None:
+    """Inserta un registro de logs en la tabla validation_logs para auditoría y métricas."""
+    pool = get_pool()
+    await pool.execute(
+        """
+        INSERT INTO validation_logs (
+            phone, node, whatsapp_message_id, 
+            lambda_score, lambda_confidence, lambda_response, 
+            latency_aws_ms, latency_gemini_ms, status, is_photocopy, timestamp
+        )
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, now())
+        """,
+        phone,
+        node,
+        whatsapp_message_id,
+        lambda_score,
+        lambda_confidence,
+        json.dumps(lambda_response) if lambda_response else None,
+        latency_aws_ms,
+        latency_gemini_ms,
+        status,
+        is_photocopy,
+    )
+
