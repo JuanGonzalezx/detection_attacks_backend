@@ -1,0 +1,20 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{\numberline {1}Descripción General}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Características del Canal}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Público Objetivo}{2}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Guía de Interacción por WhatsApp}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Paso 1: Saludo e Inicio del Proceso}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Paso 2: Envío de la Cédula Frontal}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Paso 3: Envío de la Cédula Trasera}{2}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Paso 4: Veredicto Final y Cierre}{3}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Comando Especial: Reiniciar}{3}{subsection.2.5}%
+\contentsline {section}{\numberline {3}Guía del Dashboard de Monitoreo}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Indicadores Clave (KPIs)}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Histogramas de Distribución de Score}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Tendencia y Volumen Diario}{3}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Monitoreo de Latencias y Tiempos de Respuesta}{3}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Tabla de Historial (Summary of Document Validation)}{4}{subsection.3.5}%
+\contentsline {section}{\numberline {4}Solución de Problemas Comunes}{4}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Problema 1: El bot no responde}{4}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Problema 2: El bot rechaza fotos reales}{4}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Problema 3: Error de Timeout de AWS Lambda (HTTP 500)}{4}{subsection.4.3}%
