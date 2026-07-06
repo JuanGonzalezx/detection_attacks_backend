@@ -9,12 +9,12 @@ La base de datos consta de dos tablas principales: `whatsapp\_sessions` y `valid
 \subsubsection{Tabla: whatsapp\_sessions}
 Esta tabla almacena el estado actual de la sesión del usuario. Se indexa por el número de teléfono del cliente para garantizar transiciones de estado rápidas.
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering
 \caption{Atributos de la tabla whatsapp\_sessions}
-\begin{tabular}{lll}
+\begin{tabular}{llp{11cm}}
 \toprule
-**Columna** & **Tipo** & **Descripción** \\
+\textbf{Columna} & \textbf{Tipo} & \textbf{Descripción} \\
 \midrule
 `phone` & TEXT (PK) & Número de teléfono del usuario. \\
 `state` & TEXT & Estado actual de la máquina de estados. \\
@@ -23,17 +23,17 @@ Esta tabla almacena el estado actual de la sesión del usuario. Se indexa por el
 `updated\_at` & TIMESTAMPTZ & Fecha y hora del último mensaje. \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsubsection{Tabla: validation\_logs}
 Esta tabla registra cada una de las interacciones y transacciones procesadas por el bot. Es la fuente de datos principal para el Dashboard de monitoreo.
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering
 \caption{Atributos de la tabla validation\_logs}
-\begin{tabular}{lll}
+\begin{tabular}{llp{11cm}}
 \toprule
-**Columna** & **Tipo** & **Descripción** \\
+\textbf{Columna} & \textbf{Tipo} & \textbf{Descripción} \\
 \midrule
 `id` & SERIAL (PK) & Identificador único correlativo. \\
 `phone` & TEXT & Número de teléfono del usuario. \\
@@ -49,7 +49,7 @@ Esta tabla registra cada una de las interacciones y transacciones procesadas por
 `is\_photocopy` & BOOLEAN & Indicador binario de fraude. \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{Restricciones de Pooling en Supabase}
 Dado que Supabase implementa un Connection Pooler (PgBouncer) configurado en **modo transacción** para manejar altas concurrencias (puerto `6543`), se configuró explícitamente el parámetro `statement\_cache\_size=0` en la librería `asyncpg` en el backend. 
