@@ -1,26 +1,28 @@
 \section{Modelo de Datos y Persistencia}
 \label{sec:database}
 
-El sistema utiliza una base de datos relacional **PostgreSQL** alojada en **Supabase** para mantener el estado de las conversaciones y registrar los eventos históricos para su análisis estadístico.
+El sistema utiliza una base de datos relacional \textbf{PostgreSQL} alojada en \textbf{Supabase} para mantener el estado de las conversaciones y registrar los eventos históricos para su análisis estadístico.
 
 \subsection{Esquema de Tablas}
-La base de datos consta de dos tablas principales: `whatsapp\_sessions` y `validation\_logs`.
+La base de datos consta de dos tablas principales: \texttt{whatsapp\_sessions} y \texttt{validation\_logs}.
 
 \subsubsection{Tabla: whatsapp\_sessions}
 Esta tabla almacena el estado actual de la sesión del usuario. Se indexa por el número de teléfono del cliente para garantizar transiciones de estado rápidas.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{Atributos de la tabla whatsapp\_sessions}
-\begin{tabular}{lll}
+\footnotesize
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{1.8cm} p{2cm} p{3cm}}
 \toprule
-**Columna** & **Tipo** & **Descripción** \\
+\textbf{Columna} & \textbf{Tipo} & \textbf{Descripción} \\
 \midrule
-`phone` & TEXT (PK) & Número de teléfono del usuario. \\
-`state` & TEXT & Estado actual de la máquina de estados. \\
-`front\_result` & JSONB & Metadatos técnicos de la cara frontal. \\
-`back\_result` & JSONB & Metadatos técnicos de la cara trasera. \\
-`updated\_at` & TIMESTAMPTZ & Fecha y hora del último mensaje. \\
+\texttt{phone} & TEXT (PK) & Número de teléfono del usuario. \\
+\texttt{state} & TEXT & Estado actual de la máquina de estados. \\
+\texttt{front\_result} & JSONB & Metadatos técnicos de la cara frontal. \\
+\texttt{back\_result} & JSONB & Metadatos técnicos de la cara trasera. \\
+\texttt{updated\_at} & TIMESTAMPTZ & Fecha y hora del último mensaje. \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -28,30 +30,32 @@ Esta tabla almacena el estado actual de la sesión del usuario. Se indexa por el
 \subsubsection{Tabla: validation\_logs}
 Esta tabla registra cada una de las interacciones y transacciones procesadas por el bot. Es la fuente de datos principal para el Dashboard de monitoreo.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{Atributos de la tabla validation\_logs}
-\begin{tabular}{lll}
+\footnotesize
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{2.2cm} p{1.8cm} p{2.8cm}}
 \toprule
-**Columna** & **Tipo** & **Descripción** \\
+\textbf{Columna} & \textbf{Tipo} & \textbf{Descripción} \\
 \midrule
-`id` & SERIAL (PK) & Identificador único correlativo. \\
-`phone` & TEXT & Número de teléfono del usuario. \\
-`timestamp` & TIMESTAMPTZ & Fecha y hora del procesamiento. \\
-`node` & TEXT & Nombre del nodo ejecutado. \\
-`whatsapp\_message\_id` & TEXT & Identificador wamid de Meta. \\
-`lambda\_score` & NUMERIC & Score de fraude obtenido. \\
-`lambda\_confidence` & NUMERIC & Confianza de detección de cédula. \\
-`lambda\_response` & JSONB & Respuesta JSON completa de AWS. \\
-`latency\_aws\_ms` & INTEGER & Latencia del API de AWS (ms). \\
-`latency\_gemini\_ms` & INTEGER & Latencia del API de Gemini (ms). \\
-`status` & TEXT & Estado del resultado de la petición. \\
-`is\_photocopy` & BOOLEAN & Indicador binario de fraude. \\
+\texttt{id} & SERIAL (PK) & Identificador único correlativo. \\
+\texttt{phone} & TEXT & Número de teléfono del usuario. \\
+\texttt{timestamp} & TIMESTAMP\-TZ & Fecha y hora del procesamiento. \\
+\texttt{node} & TEXT & Nombre del nodo ejecutado. \\
+\texttt{whatsapp\_\allowbreak message\_id} & TEXT & Identificador wamid de Meta. \\
+\texttt{lambda\_\allowbreak score} & NUMERIC & Score de fraude obtenido. \\
+\texttt{lambda\_\allowbreak confidence} & NUMERIC & Confianza de detección de cédula. \\
+\texttt{lambda\_\allowbreak response} & JSONB & Respuesta JSON completa de AWS. \\
+\texttt{latency\_\allowbreak aws\_ms} & INTEGER & Latencia del API de AWS (ms). \\
+\texttt{latency\_\allowbreak gemini\_ms} & INTEGER & Latencia del API de Gemini (ms). \\
+\texttt{status} & TEXT & Estado del resultado de la petición. \\
+\texttt{is\_photocopy} & BOOLEAN & Indicador binario de fraude. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Restricciones de Pooling en Supabase}
-Dado que Supabase implementa un Connection Pooler (PgBouncer) configurado en **modo transacción** para manejar altas concurrencias (puerto `6543`), se configuró explícitamente el parámetro `statement\_cache\_size=0` en la librería `asyncpg` en el backend. 
+Dado que Supabase implementa un Connection Pooler (PgBouncer) configurado en \textbf{modo transacción} para manejar altas concurrencias (puerto \texttt{6543}), se configuró explícitamente el parámetro \texttt{statement\_cache\_size=0} en la librería \texttt{asyncpg} en el backend. 
 
 Esta configuración es obligatoria para evitar errores de ejecución en la base de datos debido al reuso indebido de prepared statements a nivel de sesión en el pooler.
