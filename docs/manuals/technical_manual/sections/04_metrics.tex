@@ -1,7 +1,7 @@
 \section{Modelo de Métricas y Fórmulas Matemáticas}
 \label{sec:metrics}
 
-Las métricas mostradas en el Dashboard de NeoAstrum se derivan de la consolidación de los registros históricos en la tabla `validation\_logs`. Esta sección detalla la construcción conceptual y matemática de dichos indicadores.
+Las métricas mostradas en el Dashboard de Detection Attacks se derivan de la consolidación de los registros históricos en la tabla `validation\_logs`. Esta sección detalla la construcción conceptual y matemática de dichos indicadores.
 
 \subsection{Criterio de Clasificación de Fraude}
 El sistema asigna un veredicto binario sobre la veracidad del documento basándose en la puntuación de confianza $S$ retornada por el microservicio de AWS Rekognition. El modelo está calibrado para que $S \in [0, 1]$, donde un valor cercano a $0$ representa un documento real y un valor cercano a $1$ indica una sospecha o intento de fraude.

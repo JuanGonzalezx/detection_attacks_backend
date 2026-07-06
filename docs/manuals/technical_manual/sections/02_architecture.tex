@@ -1,7 +1,7 @@
 \section{Arquitectura del Sistema}
 \label{sec:architecture}
 
-El sistema NeoAstrum adopta una arquitectura de microservicios distribuida e híbrida, combinando la flexibilidad de la orquestación en la nube (Render) con el procesamiento especializado en infraestructura de Amazon Web Services (AWS) y servidores virtuales (EC2).
+El sistema Detection Attacks adopta una arquitectura de microservicios distribuida e híbrida, combinando la flexibilidad de la orquestación en la nube (Render) con el procesamiento especializado en infraestructura de Amazon Web Services (AWS) y servidores virtuales (EC2).
 
 \subsection{Capa Orquestadora: FastAPI y LangGraph}
 El backend principal está desarrollado en **FastAPI** y se despliega en Render. Se encarga de recibir los webhooks de Meta, procesar los eventos e interactuar de forma conversacional con el usuario por WhatsApp. La orquestación conversacional es controlada por **LangGraph**, definiendo un grafo de estados determinista guiado por la estructura de datos `AgentState`:

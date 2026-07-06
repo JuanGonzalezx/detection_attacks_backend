@@ -1,0 +1,41 @@
+\documentclass[10pt,journal,compsoc]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{color}
+
+\geometry{margin=1in}
+
+\begin{document}
+
+\title{Manual de Operación de Usuario: Sistema conversacional y Dashboard de Detección de Fraude en WhatsApp}
+
+\author{Esteban Mercado, Juan David Ocampo y Camilo}
+
+\markboth{Manual de Usuario del Software,~Vol.~1, No.~1, Julio~2026}%
+{Asistente de Detección de Fraude por WhatsApp}
+
+\IEEEtitleabstractindextext{%
+\begin{abstract}
+Este manual describe el funcionamiento conversacional del bot de WhatsApp para la validación de identidad y detección de fraude en cédulas colombianas, así como la operación y visualización de indicadores en el panel de control web del proyecto. La guía detalla la interacción paso a paso del usuario final por chat y la explotación de métricas agregadas en tiempo real.
+\end{abstract}
+}
+
+\maketitle
+
+\IEEEdisplaynontitleabstractindextext
+\IEEEpeerreviewmaketitle
+
+\input{sections/01_overview.tex}
+\input{sections/02_interaction.tex}
+\input{sections/03_dashboard.tex}
+\input{sections/04_troubleshooting.tex}
+
+\end{document}
